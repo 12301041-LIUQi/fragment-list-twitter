@@ -26,7 +26,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-public class MainActivity extends Activity
+public class MainActivity extends Activity implements FirstFragment.OnFragmentInteractionListener
 {
    // name of SharedPreferences XML file that stores the saved searches 
    private static final String SEARCHES = "searches";
@@ -64,11 +64,10 @@ public class MainActivity extends Activity
          (ImageButton) findViewById(R.id.saveButton);
       saveButton.setOnClickListener(saveButtonListener);
 
-      // MOVE to ListFragment _ register listener that searches Twitter when user touches a tag
-      //getListView().setOnItemClickListener(itemClickListener);
-      
-      // MOVE to ListFragment _  set listener that allows user to delete or edit a search
-      //getListView().setOnItemLongClickListener(itemLongClickListener);
+       getFragmentManager().beginTransaction()
+               .add(R.id.fragment_holder,new FirstFragment())
+               .commit();
+
    } // end method onCreate
 
    // NO CHANGES _  saveButtonListener saves a tag-query pair into SharedPreferences
@@ -116,7 +115,10 @@ public class MainActivity extends Activity
       SharedPreferences.Editor preferencesEditor = savedSearches.edit();
       preferencesEditor.putString(tag, query); // store current search
       preferencesEditor.apply(); // store the updated preferences
-      
+
+       Collections.sort(tags, String.CASE_INSENSITIVE_ORDER);
+       adapter.notifyDataSetChanged(); // rebind tags to ListView
+
       // if tag is new, add to and sort tags, then display updated list
       if (!tags.contains(tag))
       {
@@ -124,27 +126,7 @@ public class MainActivity extends Activity
          Collections.sort(tags, String.CASE_INSENSITIVE_ORDER);
          adapter.notifyDataSetChanged(); // rebind tags to ListView
       }
-   } 
-   
-   /* MOVE to ListFragment and Activity Interface implementation
-   OnItemClickListener itemClickListener = new OnItemClickListener() 
-   {
-      @Override
-      public void onItemClick(AdapterView<?> parent, View view, 
-         int position, long id) 
-      {
-         // get query string and create a URL representing the search
-         String tag = ((TextView) view).getText().toString();
-         String urlString = getString(R.string.searchURL) +
-            Uri.encode(savedSearches.getString(tag, ""), "UTF-8");
-         
-         // create an Intent to launch a web browser    
-         Intent webIntent = new Intent(Intent.ACTION_VIEW, 
-            Uri.parse(urlString));                      
-
-         startActivity(webIntent); // launches web browser to view results
-      } 
-   }; // end itemClickListener declaration*/
+   }
    
    // CHANGED _ to provide itemLongClickListener to the ListFragment
    // displays a dialog allowing the user to delete or edit a saved search
@@ -274,6 +256,26 @@ public class MainActivity extends Activity
 
    // ADDED to set up the ListFragment
    public ArrayAdapter<String> getAdapter(){return adapter;}
+
+    @Override
+    public void sendToSecondFrag(String query) {
+        String urlString = getString(R.string.searchURL) +
+                Uri.encode(savedSearches.getString(query, ""), "UTF-8");
+
+        getFragmentManager().beginTransaction()
+                .replace(R.id.fragment_holder, SecondFragment.newInstance(urlString))
+                .addToBackStack(null)
+                .commit();
+    }
+
+    @Override
+    public void onBackPressed(){
+        if(getFragmentManager().getBackStackEntryCount()>0){
+            getFragmentManager().popBackStack();
+        } else {
+            super.onBackPressed();
+        }
+    }
 
 } // end class MainActivity
 
